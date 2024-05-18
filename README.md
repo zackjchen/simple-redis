@@ -70,3 +70,84 @@ map.entry(key) // 返回的是一个entry，可读可写,可插入，可修改
 map.get_mut(key) // 返回的是一个可变引用，但不能插入值，只能修改
 map.get(key)   // 返回的是一个引用，只可读
 ```
+
+## futures
+```sh
+# 添加lib时不带默认的features
+cargo add futures --no-default-features
+```
+**`Stream`类似`Iterator`，是一个异步读取的trait，需要实现`poll_next`方法。**
+**`Sink`是一个异步写的trait，至少需要实现`poll_ready`方法**
+
+- `StreamExt`和`SinkExt`都是工具trait，在`Stream`和`Sink`的基础上提供一些封装的方法
+  标准库提供了Future trait用于支持异步。
+
+- futures是第三方对异步编程的支持和抽象，提供Sink和Stream, 以及SinKExt, StreamExt
+  tokio只提供了Stream trait，并且和futures提供的Stream有所不同.
+
+- tokio-util提供compat功能可以转换两个Stream
+
+
+<img src='./asserts/异步io接口.webp'>
+
+```rust
+// StreamExt, iterator有的它也有
+fn next
+fn map
+....
+// SinkExt
+fn send
+fn send_all
+```
+
+## enum_dispatch
+
+```rust
+use enum_dispatch::enum_dispatch;
+
+struct A;
+struct B;
+struct C;
+
+#[enum_dispatch]
+trait MyTrait {
+    fn execute(self);
+}
+impl MyTrait for A{...}
+impl MyTrait for B{...}
+impl MyTrait for C{...}
+
+[dispatch(MyTrait)]
+enum E{
+    FieldA(A)
+    FieldB(B)
+    FieldC(C)
+    ...
+}
+/// 上面的写法自动实现下面的代码
+///  -----------------------------------
+impl From<A> for E{
+    fn from(set: Set) -> Self {
+        Command::A(A)
+    }
+}
+impl From<B> for E{
+    fn from(set: Set) -> Self {
+        Command::B(B)
+    }
+}
+impl From<C> for E{
+    fn from(set: Set) -> Self {
+        Command::C(C)
+    }
+}
+impl MyTrait for E {
+    fn execute(self){
+        match E{
+            A => A.execute(),
+            B => B.execute(),
+            C => C.execute(),
+        }
+    }
+}
+```

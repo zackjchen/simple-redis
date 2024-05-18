@@ -3,6 +3,7 @@ use crate::{
     backend::Backend,
     resp::{RespArray, RespFrame, SimpleString},
 };
+use enum_dispatch::enum_dispatch;
 use lazy_static::lazy_static;
 use thiserror::Error;
 mod hmap;
@@ -10,17 +11,26 @@ mod map;
 lazy_static! {
     static ref RESP_OK: RespFrame = SimpleString::new("OK").into();
 }
+#[enum_dispatch]
 pub trait CommandExecuter {
     fn execute(self, backend: Backend) -> RespFrame;
 }
-
+#[derive(Debug)]
+#[enum_dispatch(CommandExecuter)]
 pub enum Command {
     Get(Get),
     Set(Set),
-    Del(Del),
     HSet(HSet),
     HGet(HGet),
     HGetAll(HGetAll),
+    Unrecongnized(Unrecongnized),
+}
+#[derive(Debug)]
+pub struct Unrecongnized;
+impl CommandExecuter for Unrecongnized {
+    fn execute(self, _backend: Backend) -> RespFrame {
+        RESP_OK.clone()
+    }
 }
 
 #[derive(Debug)]
@@ -34,10 +44,6 @@ pub struct Set {
     value: RespFrame,
 }
 
-#[derive(Debug)]
-pub struct Del {
-    key: String,
-}
 /// HSET key field value：将哈希表 key 中的字段 field 的值设为 value。
 /// 如果 key 不存在，一个新的哈希表被创建并进行 HSET 操作。如果字段 field 已经存在于哈希表中，旧值将被覆盖。
 /// eg. hset key field value
@@ -74,8 +80,32 @@ pub enum CommandError {
 impl TryFrom<RespArray> for Command {
     type Error = CommandError;
 
-    fn try_from(_frame: RespArray) -> Result<Self, Self::Error> {
-        todo!()
+    fn try_from(frames: RespArray) -> Result<Self, Self::Error> {
+        match frames.first() {
+            Some(RespFrame::BulkString(frame)) => match frame.as_ref() {
+                b"get" => Ok(Get::try_from(frames)?.into()),
+                b"set" => Ok(Set::try_from(frames)?.into()),
+                b"hset" => Ok(HSet::try_from(frames)?.into()),
+                b"hget" => Ok(HGet::try_from(frames)?.into()),
+                b"hgetall" => Ok(HGetAll::try_from(frames)?.into()),
+                _ => Ok(Unrecongnized.into()),
+            },
+            _ => Err(CommandError::InvalidCommand(
+                "Command must be a BulkString as the first arguments".to_string(),
+            )),
+        }
+    }
+}
+impl TryFrom<RespFrame> for Command {
+    type Error = CommandError;
+
+    fn try_from(value: RespFrame) -> Result<Self, Self::Error> {
+        match value {
+            RespFrame::Array(frames) => Command::try_from(frames),
+            _ => Err(CommandError::InvalidArgument(
+                "Parse RespFrame to Command error, Command must be an RespArray".to_string(),
+            )),
+        }
     }
 }
 

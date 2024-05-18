@@ -62,6 +62,7 @@ impl RespDecode for RespFrame {
                 let frame = RespSet::decode(buf)?;
                 Ok(frame.into())
             }
+            None => Err(RespError::NotCompleteFrame),
             _ => todo!(),
         }
     }
