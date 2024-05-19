@@ -1,11 +1,13 @@
-# Geektime Rust 语言训练营 Simple-redis
+# Simple-redis
 
 
 一个简单的redis server的实现
 
 ## Bytes
-摘抄自 `https://tokio.rs/tokio/tutorial/shared-state`
-Bytes就是Vec<u8>
+摘抄自 <a href="https://tokio.rs/tokio/tutorial/shared-state" >https://tokio.rs/tokio/tutorial/shared-state</a>
+
+**Bytes就是`Vec<u8>`**
+
 Instead of using Vec<u8>, the Mini-Redis crate uses Bytes from the bytes crate.  The goal of Bytes is to provide a robust byte array structure for network programming.  The biggest feature it adds over Vec<u8> is shallow cloning.  In other words, calling clone() on a Bytes instance does not copy the underlying data.  Instead, a Bytes instance is a reference-counted handle to some underlying data.  The Bytes type is roughly an Arc<Vec<u8>> but with some added capabilities.
 
 **BytesMut中重要的3个方法**
@@ -77,6 +79,7 @@ map.get(key)   // 返回的是一个引用，只可读
 cargo add futures --no-default-features
 ```
 **`Stream`类似`Iterator`，是一个异步读取的trait，需要实现`poll_next`方法。**
+
 **`Sink`是一个异步写的trait，至少需要实现`poll_ready`方法**
 
 - `StreamExt`和`SinkExt`都是工具trait，在`Stream`和`Sink`的基础上提供一些封装的方法
@@ -88,7 +91,7 @@ cargo add futures --no-default-features
 - tokio-util提供compat功能可以转换两个Stream
 
 
-<img src='./asserts/异步io接口.webp'>
+<img src='./asserts/async_interface.png'>
 
 ```rust
 // StreamExt, iterator有的它也有

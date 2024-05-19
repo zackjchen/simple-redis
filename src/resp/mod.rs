@@ -1,13 +1,28 @@
-#![allow(dead_code)]
-
+pub mod array;
+pub mod boolean;
+pub mod bulk_string;
 pub mod decode;
+pub mod double;
 pub mod encode;
+pub mod frame;
+pub mod integer;
+pub mod map;
+pub mod null;
+pub mod set;
+pub mod simple_error;
+pub mod simple_string;
+pub use crate::resp::{
+    array::{RespArray, RespNullArray},
+    bulk_string::{BulkString, RespNullBulkString},
+    map::RespMap,
+    null::RespNull,
+    set::RespSet,
+    simple_error::SimpleError,
+    simple_string::SimpleString,
+};
 use bytes::{Buf, BytesMut};
 use enum_dispatch::enum_dispatch;
-use std::{
-    collections::BTreeMap,
-    ops::{Deref, DerefMut},
-};
+use frame::RespFrame;
 use thiserror::Error;
 
 const CRLF: &[u8] = b"\r\n";
@@ -42,151 +57,8 @@ pub trait RespDecode: Sized {
     fn expect_length(buf: &[u8]) -> Result<usize, RespError>;
 }
 
-/// SampleString和SimpleError都包裹一下，否则实现trait的时候没办法区分
-#[enum_dispatch(RespEncode)]
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
-pub enum RespFrame {
-    SimpleString(SimpleString),
-    SimpleError(SimpleError),
-    Integer(i64),
-    BulkString(BulkString),
-    NullBulkString(RespNullBulkString),
-    Array(RespArray),
-    Null(RespNull),
-    NullArray(RespNullArray),
-    Boolean(bool),
-    // f64不支持hash
-    Double(f64),
-    Map(RespMap),
-    Set(RespSet),
-}
-#[derive(Debug, PartialEq, Eq, PartialOrd, Clone)]
-pub struct SimpleString(pub(crate) String);
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Clone)]
-pub struct SimpleError(pub(crate) String);
-
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
-pub struct RespArray(pub(crate) Vec<RespFrame>);
-
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
-pub struct RespNull;
-
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
-pub struct RespNullArray;
-
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
-pub struct RespNullBulkString;
-
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
-pub struct BulkString(pub(crate) Vec<u8>);
-
-/// Now only support string key which encode to SimpleString
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
-pub struct RespMap(pub(crate) BTreeMap<String, RespFrame>);
-
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
-pub struct RespSet(pub(crate) Vec<RespFrame>);
-
-impl Deref for SimpleString {
-    type Target = String;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl Deref for SimpleError {
-    type Target = String;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl Deref for BulkString {
-    type Target = Vec<u8>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-impl AsRef<[u8]> for BulkString {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_ref()
-    }
-}
-
-impl Deref for RespArray {
-    type Target = Vec<RespFrame>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl Deref for RespMap {
-    type Target = BTreeMap<String, RespFrame>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-impl DerefMut for RespMap {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl Deref for RespSet {
-    type Target = Vec<RespFrame>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl SimpleString {
-    pub fn new(s: impl Into<String>) -> Self {
-        SimpleString(s.into())
-    }
-}
-impl SimpleError {
-    pub fn new(s: impl Into<String>) -> Self {
-        SimpleError(s.into())
-    }
-}
-impl BulkString {
-    pub fn new(s: impl Into<Vec<u8>>) -> Self {
-        BulkString(s.into())
-    }
-}
-
-impl RespMap {
-    pub fn new() -> Self {
-        RespMap(BTreeMap::new())
-    }
-}
-
-impl Default for RespMap {
-    fn default() -> Self {
-        RespMap::new()
-    }
-}
-
-impl RespSet {
-    pub fn new(s: impl Into<Vec<RespFrame>>) -> Self {
-        RespSet(s.into())
-    }
-}
-impl RespArray {
-    pub fn new(s: impl Into<Vec<RespFrame>>) -> Self {
-        RespArray(s.into())
-    }
-}
-
 fn find_crlf(buf: &[u8]) -> Option<usize> {
     buf.windows(2).position(|window| window == CRLF)
-}
-/// 这个写法需要好好记一下
-impl<const N: usize> From<&[u8; N]> for BulkString {
-    fn from(s: &[u8; N]) -> Self {
-        BulkString(s.to_vec())
-    }
 }
 
 /// %2\r\n+hello\r\n$5\r\nworld\r\n+foo\r\n$3\r\nbar\r\n

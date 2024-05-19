@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use crate::{
     backend::Backend,
-    resp::{RespArray, RespFrame, SimpleString},
+    resp::{array::RespArray, frame::RespFrame, simple_string::SimpleString},
 };
 use enum_dispatch::enum_dispatch;
 use lazy_static::lazy_static;

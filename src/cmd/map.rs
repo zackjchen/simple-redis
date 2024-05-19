@@ -1,7 +1,7 @@
 use crate::{
     backend::Backend,
     cmd::{CommandError, Get},
-    resp::{RespArray, RespFrame, RespNull},
+    resp::{array::RespArray, frame::RespFrame, null::RespNull},
 };
 
 use super::{extract_args, validate_command, CommandExecuter, Set, RESP_OK};
@@ -61,7 +61,7 @@ impl TryFrom<RespArray> for Set {
 mod test {
     use crate::{
         cmd::{Get, Set},
-        resp::{BulkString, RespArray, RespDecode, RespFrame},
+        resp::{array::RespArray, bulk_string::BulkString, frame::RespFrame, RespDecode},
     };
     use bytes::BytesMut;
     use std::vec;

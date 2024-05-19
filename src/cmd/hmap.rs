@@ -1,6 +1,6 @@
 use crate::{
     backend::Backend,
-    resp::{RespArray, RespFrame, RespMap, RespNull},
+    resp::{array::RespArray, frame::RespFrame, null::RespNull, BulkString},
 };
 
 use super::{
@@ -25,14 +25,26 @@ impl CommandExecuter for HSet {
 impl CommandExecuter for HGetAll {
     fn execute(self, backend: Backend) -> RespFrame {
         let map = backend.hget_all(&self.key);
-        let mut resp_map = RespMap::new();
 
-        if let Some(map) = map {
-            for v in map.iter() {
-                resp_map.insert(v.key().clone(), v.value().clone());
+        match map {
+            Some(hmap) => {
+                let mut data = Vec::with_capacity(hmap.len());
+                for v in hmap.iter() {
+                    let key = v.key().to_owned();
+                    data.push((key, v.value().clone()));
+                }
+
+                data.sort_by(|a, b| a.0.cmp(&b.0));
+
+                let ret = data
+                    .into_iter()
+                    .flat_map(|(k, v)| vec![BulkString::new(k).into(), v])
+                    .collect::<Vec<RespFrame>>();
+
+                RespArray::new(ret).into()
             }
+            None => RespArray::new([]).into(),
         }
-        resp_map.into()
     }
 }
 
@@ -97,7 +109,7 @@ mod test {
     use crate::{
         backend::Backend,
         cmd::{CommandExecuter, HGet, HGetAll, HSet, RESP_OK},
-        resp::{BulkString, RespArray, RespDecode, RespFrame, RespMap},
+        resp::{array::RespArray, bulk_string::BulkString, frame::RespFrame, RespDecode},
     };
     use anyhow::Result;
     use bytes::BytesMut;
@@ -154,23 +166,21 @@ mod test {
         let hgetall = HGetAll::try_from(hgetall)?;
         let resp = hgetall.execute(backend.clone());
 
-        let mut resp_map = RespMap::new();
-        resp_map.insert(
-            "field1".to_string(),
-            RespFrame::BulkString(BulkString::new("value1")),
-        );
-        resp_map.insert(
-            "field2".to_string(),
-            RespFrame::BulkString(BulkString::new("value2")),
-        );
-        assert_eq!(resp, RespFrame::Map(resp_map));
+        let resp_array: Vec<RespFrame> = vec![
+            BulkString::new("field1").into(),
+            BulkString::new("value1").into(),
+            BulkString::new("field2").into(),
+            BulkString::new("value2").into(),
+        ];
+
+        assert_eq!(resp, RespFrame::Array(RespArray::new(resp_array)));
 
         let mut hgetall2 = BytesMut::from("*2\r\n$7\r\nhgetall\r\n$4\r\nkey2\r\n");
         let hgetall2 = RespArray::decode(&mut hgetall2)?;
         let hgetall2 = HGetAll::try_from(hgetall2)?;
         let resp2 = hgetall2.execute(backend.clone());
         println!("{:?}", resp2);
-        assert_eq!(resp2, RespFrame::Map(RespMap::new()));
+        assert_eq!(resp2, RespArray::new([]).into());
 
         Ok(())
     }

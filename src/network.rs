@@ -1,7 +1,7 @@
 use crate::{
     backend::Backend,
     cmd::{Command, CommandExecuter},
-    resp::{RespDecode, RespEncode, RespError, RespFrame, SimpleError},
+    resp::{frame::RespFrame, simple_error::SimpleError, RespDecode, RespEncode, RespError},
 };
 use anyhow::Result;
 use futures::SinkExt;
