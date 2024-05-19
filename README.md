@@ -91,7 +91,7 @@ cargo add futures --no-default-features
 - tokio-util提供compat功能可以转换两个Stream
 
 
-<img src='./asserts/async_interface.png'>
+<img src='https://raw.githubusercontent.com/zackjchen/simple-redis/master/asserts/%E5%BC%82%E6%AD%A5io%E6%8E%A5%E5%8F%A3.webp'>
 
 ```rust
 // StreamExt, iterator有的它也有
