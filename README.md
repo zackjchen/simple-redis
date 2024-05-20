@@ -6,6 +6,9 @@
 
 ## 作业
 
+1. 实现了echo command, 返回的时候直接用的SimpleString
+2. todo
+3. todo
 
 ### 作业2
 这两个类似，写一个的修改过程
