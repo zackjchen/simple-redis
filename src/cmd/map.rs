@@ -26,7 +26,7 @@ impl TryFrom<RespArray> for Get {
         validate_command(&value, &["get"], 1)?;
         let mut args = extract_args(value, 1)?.into_iter();
         let key = match args.next() {
-            Some(RespFrame::BulkString(key)) => String::from_utf8(key.0)?,
+            Some(RespFrame::BulkString(key)) => String::from_utf8(key.0.unwrap())?,
             _ => {
                 return Err(CommandError::InvalidArgument(
                     "key must be a bulk string".to_string(),
@@ -46,7 +46,9 @@ impl TryFrom<RespArray> for Set {
         validate_command(&value, &["set"], 2)?;
         let mut args = extract_args(value, 1)?.into_iter();
         let (key, val) = match (args.next(), args.next()) {
-            (Some(RespFrame::BulkString(key)), Some(value)) => (String::from_utf8(key.0)?, value),
+            (Some(RespFrame::BulkString(key)), Some(value)) => {
+                (String::from_utf8(key.0.unwrap())?, value)
+            }
             _ => {
                 return Err(CommandError::InvalidArgument(
                     "key must be a bulk string".to_string(),
@@ -69,8 +71,8 @@ mod test {
     #[test]
     fn test_get_try_from_resp_array() {
         let frame = RespArray::new(vec![
-            BulkString(b"get".to_vec()).into(),
-            BulkString(b"key".to_vec()).into(),
+            BulkString(Some(b"get".to_vec())).into(),
+            BulkString(Some(b"key".to_vec())).into(),
         ]);
         let get_cmd = Get::try_from(frame).unwrap();
         assert_eq!(get_cmd.key, "key");
@@ -84,7 +86,7 @@ mod test {
         assert_eq!(set_cmd.key, "key");
         assert_eq!(
             set_cmd.value,
-            RespFrame::BulkString(BulkString(b"value".to_vec()))
+            RespFrame::BulkString(BulkString(Some(b"value".to_vec())))
         );
         Ok(())
     }

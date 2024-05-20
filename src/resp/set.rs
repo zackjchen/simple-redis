@@ -24,6 +24,7 @@ impl RespDecode for RespSet {
     fn decode(buf: &mut BytesMut) -> Result<Self, RespError> {
         // let prefix = "~";
         let (end, len) = parse_length(buf, Self::PREFIX, Self::FRAME_TYPE)?;
+        let len = len as usize;
         let total_len = calc_total_length(buf, end, len, Self::PREFIX)?;
         if buf.len() < total_len {
             return Err(RespError::NotCompleteFrame);
@@ -40,6 +41,7 @@ impl RespDecode for RespSet {
 
     fn expect_length(buf: &[u8]) -> Result<usize, RespError> {
         let (end, len) = parse_length(buf, Self::PREFIX, Self::FRAME_TYPE)?;
+        let len = len as usize;
         calc_total_length(buf, end, len, "~")
     }
 }
@@ -68,13 +70,13 @@ mod test {
 
     #[test]
     fn test_set_encode() {
-        let set = vec![
+        let arr = vec![
             SimpleString::new("foo").into(),
             SimpleString::new("bar").into(),
             RespFrame::Double(-5.21),
-            RespArray(vec![SimpleString::new("hello").into()]).into(),
+            RespArray(Some(vec![SimpleString::new("hello").into()])).into(),
         ];
-        let frame: RespFrame = RespArray(set).into();
+        let frame: RespFrame = RespArray(Some(arr)).into();
         assert_eq!(
             frame.encode(),
             b"*4\r\n+foo\r\n+bar\r\n,-5.21e0\r\n*1\r\n+hello\r\n"

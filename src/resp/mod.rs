@@ -12,13 +12,8 @@ pub mod set;
 pub mod simple_error;
 pub mod simple_string;
 pub use crate::resp::{
-    array::{RespArray, RespNullArray},
-    bulk_string::{BulkString, RespNullBulkString},
-    map::RespMap,
-    null::RespNull,
-    set::RespSet,
-    simple_error::SimpleError,
-    simple_string::SimpleString,
+    array::RespArray, bulk_string::BulkString, map::RespMap, null::RespNull, set::RespSet,
+    simple_error::SimpleError, simple_string::SimpleString,
 };
 use bytes::{Buf, BytesMut};
 use enum_dispatch::enum_dispatch;
@@ -43,6 +38,8 @@ pub enum RespError {
     ParseIntError(#[from] std::num::ParseIntError),
     #[error("parse float error: {0}")]
     ParseFloatError(#[from] std::num::ParseFloatError),
+    #[error("parse utf8 error: {0}")]
+    ParseUtf8Error(#[from] std::string::FromUtf8Error),
 }
 
 #[enum_dispatch]
@@ -144,12 +141,14 @@ fn extract_simple_frame_data(
 }
 
 /// 去除prefix到第一个\r\n中的数据，解析成usize作为长度，返回\r的下标和长度
-fn parse_length(buf: &[u8], prefix: &str, frame_type: &str) -> Result<(usize, usize), RespError> {
+fn parse_length(buf: &[u8], prefix: &str, frame_type: &str) -> Result<(usize, isize), RespError> {
     let end = extract_simple_frame_data(buf, prefix, frame_type)?;
     let s = String::from_utf8_lossy(&buf[prefix.len()..end]);
     // 这里为了保证当空数组的时候，返回0
     let len = s.parse::<isize>()?;
-    let len = if len < 0 { 0 } else { len as usize };
+    if len < -1 {
+        return Err(RespError::InvalidFrameLength(len));
+    }
     Ok((end, len))
 }
 

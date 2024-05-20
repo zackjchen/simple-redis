@@ -31,6 +31,7 @@ impl RespDecode for RespMap {
     const FRAME_TYPE: &'static str = "RespMap";
     fn decode(buf: &mut BytesMut) -> Result<Self, RespError> {
         let (end, len) = parse_length(buf, Self::PREFIX, Self::FRAME_TYPE)?;
+        let len = len as usize;
         let total_len = calc_total_length(buf, end, len, Self::PREFIX)?;
         if buf.len() < total_len {
             return Err(RespError::NotCompleteFrame);
@@ -47,6 +48,7 @@ impl RespDecode for RespMap {
 
     fn expect_length(buf: &[u8]) -> Result<usize, RespError> {
         let (end, len) = parse_length(buf, Self::PREFIX, Self::FRAME_TYPE)?;
+        let len = len as usize;
         calc_total_length(buf, end, len, "%")
     }
 }
@@ -78,7 +80,7 @@ impl Default for RespMap {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::resp::{BulkString, RespNullArray};
+    use crate::resp::{BulkString, RespArray};
     use anyhow::Result;
 
     #[test]
@@ -100,7 +102,7 @@ mod test {
         let mut map = RespMap::new();
         map.insert("hello".into(), BulkString::new("world").into());
         map.insert("foo".into(), BulkString::new("bar").into());
-        map.insert("array".into(), RespNullArray.into());
+        map.insert("array".into(), RespArray::new_null_array().into());
 
         let frame = RespMap::decode(&mut buf.clone())?;
         assert_eq!(frame, map);

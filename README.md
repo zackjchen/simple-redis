@@ -3,6 +3,24 @@
 
 一个简单的redis server的实现
 
+
+## 作业
+
+
+### 作业2
+这两个类似，写一个的修改过程
+**NullBulkString 用 BulkString(None)代替**
+**NullArray 用 RespArray(None)代替**
+
+1. 删除RespFrame中的NullBulkString，NullArray定义和相关代码
+2. 修改 `RespArray(Vec<RespFrame>)`为`RespArray(Option<Vec<RespFrame>>)`，我添加了一个new_null_array()用来生成NullArray
+3. 修改 Encode, match RespArray.0, 如果为None，直接返回`*-1\r\n`, 否者返回之前的
+4. 修改 Decode, (调用parse_length，需要修改，见第四步) 当解析出来的长度为-1时，直接返回 RespArray(None), 否者返回之前
+5. 由于NullArray字节数组中长度为1， 所以parse_length返回值len需要支持负数，在所有decode和求expect_length时处理len==-1的情况
+6. 修改frame下关于NullArray的代码, 不用先match NullArray::decode了。并且修改所有测试代码, 大多数为构建NullArray时需要添加Some()
+7. 修改 `用BulkString(Vec<u8>)`为`用BulkString(Option<Vec<u8>>)`
+
+
 ## Bytes
 摘抄自 <a href="https://tokio.rs/tokio/tutorial/shared-state" >https://tokio.rs/tokio/tutorial/shared-state</a>
 

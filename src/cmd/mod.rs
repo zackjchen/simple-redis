@@ -6,8 +6,11 @@ use crate::{
 use enum_dispatch::enum_dispatch;
 use lazy_static::lazy_static;
 use thiserror::Error;
+mod echo;
 mod hmap;
 mod map;
+use echo::Echo;
+
 lazy_static! {
     static ref RESP_OK: RespFrame = SimpleString::new("OK").into();
 }
@@ -23,6 +26,7 @@ pub enum Command {
     HSet(HSet),
     HGet(HGet),
     HGetAll(HGetAll),
+    Echo(Echo),
     Unrecongnized(Unrecongnized),
 }
 #[derive(Debug)]
@@ -81,15 +85,18 @@ impl TryFrom<RespArray> for Command {
     type Error = CommandError;
 
     fn try_from(frames: RespArray) -> Result<Self, Self::Error> {
-        match frames.first() {
-            Some(RespFrame::BulkString(frame)) => match frame.as_ref() {
-                b"get" => Ok(Get::try_from(frames)?.into()),
-                b"set" => Ok(Set::try_from(frames)?.into()),
-                b"hset" => Ok(HSet::try_from(frames)?.into()),
-                b"hget" => Ok(HGet::try_from(frames)?.into()),
-                b"hgetall" => Ok(HGetAll::try_from(frames)?.into()),
-                _ => Ok(Unrecongnized.into()),
-            },
+        match frames.0.as_ref().unwrap().first() {
+            Some(RespFrame::BulkString(frame)) => {
+                match frame.0.as_ref().unwrap().to_ascii_lowercase().as_slice() {
+                    b"get" => Ok(Get::try_from(frames)?.into()),
+                    b"set" => Ok(Set::try_from(frames)?.into()),
+                    b"hset" => Ok(HSet::try_from(frames)?.into()),
+                    b"hget" => Ok(HGet::try_from(frames)?.into()),
+                    b"hgetall" => Ok(HGetAll::try_from(frames)?.into()),
+                    b"echo" => Ok(Echo::try_from(frames)?.into()),
+                    _ => Ok(Unrecongnized.into()),
+                }
+            }
             _ => Err(CommandError::InvalidCommand(
                 "Command must be a BulkString as the first arguments".to_string(),
             )),
@@ -98,7 +105,6 @@ impl TryFrom<RespArray> for Command {
 }
 impl TryFrom<RespFrame> for Command {
     type Error = CommandError;
-
     fn try_from(value: RespFrame) -> Result<Self, Self::Error> {
         match value {
             RespFrame::Array(frames) => Command::try_from(frames),
@@ -116,6 +122,15 @@ fn validate_command(
     names: &[&'static str],
     n_args: usize,
 ) -> Result<(), CommandError> {
+    let value = match &value.0 {
+        Some(val) => val,
+        None => {
+            return Err(CommandError::InvalidCommand(
+                "Validate command error, Invalid Get command".to_string(),
+            ))
+        }
+    };
+
     if value.len() != n_args + names.len() {
         return Err(CommandError::InvalidArgument(format!(
             "{} command must have {} arguments",
@@ -126,7 +141,7 @@ fn validate_command(
     if let Some((i, name)) = names.iter().enumerate().next() {
         match value[i] {
             RespFrame::BulkString(ref cmd) => {
-                if cmd.as_ref().to_ascii_lowercase() == name.as_bytes() {
+                if cmd.0.as_ref().unwrap().to_ascii_lowercase() == name.as_bytes() {
                     return Ok(());
                 } else {
                     return Err(CommandError::InvalidCommand(
@@ -145,11 +160,11 @@ fn validate_command(
 }
 
 fn extract_args(value: RespArray, start: usize) -> Result<Vec<RespFrame>, CommandError> {
-    // let mut args: Vec<&RespFrame> = Vec::with_capacity(value.len() - start);
-    // for i in start..value.len() {
-    //     args.push(&value[i]);
-    // }
-    // Ok(args)
     //// 链式
-    Ok(value.0.into_iter().skip(start).collect::<Vec<RespFrame>>())
+    match value.0 {
+        Some(val) => Ok(val.into_iter().skip(start).collect::<Vec<RespFrame>>()),
+        None => Err(CommandError::InvalidCommand(
+            "extract args failed, this is a empty array".to_string(),
+        )),
+    }
 }
