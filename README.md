@@ -35,8 +35,9 @@
     ```
 3. sadd/sismember
 
-    在实现时给RespFrame强行实现了Eq和hash, 感觉会有问题。
-    所以在之后往set中insert之前, 判断是否存在f64类型，如果存在不插入，返回Integer(0)
+    由于我在DashSet里面放了RespFrame, 但DashSet它需要存放的值能(eq & hash)
+    实现时给RespFrame强行实现了Eq和hash, 感觉会有问题。
+    所以在之后往set中insert之前, 判断是否存在f64类型，如果存在则插入失败，返回Integer(0)
 
     - backend添加一个`DashMap<String, DashSet<RespFrame>>`
     - 添加SAdd 和 SisMember结构体
