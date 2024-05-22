@@ -8,8 +8,10 @@ use lazy_static::lazy_static;
 use thiserror::Error;
 mod echo;
 mod hmap;
+mod hmget;
 mod map;
 use echo::Echo;
+use hmget::HmGet;
 
 lazy_static! {
     static ref RESP_OK: RespFrame = SimpleString::new("OK").into();
@@ -27,6 +29,7 @@ pub enum Command {
     HGet(HGet),
     HGetAll(HGetAll),
     Echo(Echo),
+    HmGet(HmGet),
     Unrecongnized(Unrecongnized),
 }
 #[derive(Debug)]
@@ -94,6 +97,7 @@ impl TryFrom<RespArray> for Command {
                     b"hget" => Ok(HGet::try_from(frames)?.into()),
                     b"hgetall" => Ok(HGetAll::try_from(frames)?.into()),
                     b"echo" => Ok(Echo::try_from(frames)?.into()),
+                    b"hmget" => Ok(HmGet::try_from(frames)?.into()),
                     _ => Ok(Unrecongnized.into()),
                 }
             }

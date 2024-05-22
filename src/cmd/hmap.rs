@@ -1,6 +1,6 @@
 use crate::{
     backend::Backend,
-    resp::{array::RespArray, frame::RespFrame, null::RespNull, BulkString},
+    resp::{array::RespArray, frame::RespFrame, BulkString},
 };
 
 use super::{
@@ -11,7 +11,7 @@ impl CommandExecuter for HGet {
     fn execute(self, backend: Backend) -> RespFrame {
         backend
             .hget(&self.key, &self.field)
-            .unwrap_or(RespFrame::Null(RespNull))
+            .unwrap_or(RespFrame::BulkString(BulkString::new_null_string()))
     }
 }
 
