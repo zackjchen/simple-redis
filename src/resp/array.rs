@@ -4,7 +4,7 @@ use super::{
 };
 use bytes::{Buf, BytesMut};
 
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Eq)]
 pub struct RespArray(pub(crate) Option<Vec<RespFrame>>);
 
 impl RespEncode for RespArray {

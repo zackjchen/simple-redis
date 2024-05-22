@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use bytes::BytesMut;
 use enum_dispatch::enum_dispatch;
 
@@ -24,6 +26,14 @@ pub enum RespFrame {
     Double(f64),
     Map(RespMap),
     Set(RespSet),
+}
+
+/// 这里强行加Eq，遇到f64类型应该会报错
+impl Eq for RespFrame {}
+impl Hash for RespFrame {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        core::mem::discriminant(self).hash(state);
+    }
 }
 
 /// 我觉得encode的实现放在一起方便我读，我先不refactor成单独的文件

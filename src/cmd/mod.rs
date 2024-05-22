@@ -10,8 +10,10 @@ mod echo;
 mod hmap;
 mod hmget;
 mod map;
+mod set;
 use echo::Echo;
 use hmget::HmGet;
+use set::{SAdd, SisMember};
 
 lazy_static! {
     static ref RESP_OK: RespFrame = SimpleString::new("OK").into();
@@ -20,6 +22,7 @@ lazy_static! {
 pub trait CommandExecuter {
     fn execute(self, backend: Backend) -> RespFrame;
 }
+
 #[derive(Debug)]
 #[enum_dispatch(CommandExecuter)]
 pub enum Command {
@@ -30,8 +33,11 @@ pub enum Command {
     HGetAll(HGetAll),
     Echo(Echo),
     HmGet(HmGet),
+    SAdd(SAdd),
+    SisMember(SisMember),
     Unrecongnized(Unrecongnized),
 }
+
 #[derive(Debug)]
 pub struct Unrecongnized;
 impl CommandExecuter for Unrecongnized {
@@ -98,6 +104,8 @@ impl TryFrom<RespArray> for Command {
                     b"hgetall" => Ok(HGetAll::try_from(frames)?.into()),
                     b"echo" => Ok(Echo::try_from(frames)?.into()),
                     b"hmget" => Ok(HmGet::try_from(frames)?.into()),
+                    b"sadd" => Ok(SAdd::try_from(frames)?.into()),
+                    b"sismember" => Ok(SisMember::try_from(frames)?.into()),
                     _ => Ok(Unrecongnized.into()),
                 }
             }

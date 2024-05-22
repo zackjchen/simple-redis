@@ -2,7 +2,7 @@ use bytes::BytesMut;
 
 use super::{extract_fixed_data, RespDecode, RespEncode, RespError};
 
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Eq)]
 pub struct RespNull;
 
 impl RespEncode for RespNull {

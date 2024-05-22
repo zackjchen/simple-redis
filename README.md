@@ -6,9 +6,59 @@
 
 ## 作业
 
-1. 实现了echo command, 返回的时候直接用的SimpleString
-2. todo
-3. todo
+1. 实现了echo command
+    - 返回的时候直接用的SimpleString
+    ```sh
+    echo hello
+    hello
+    echo zack
+    zack
+    ```
+
+2. hmget,
+    - 添加了一个结构体HmGet
+    - 实现CommandExecuter
+    - `TryFrom<RespArray> for HmGet`
+    - 添加`TryFrom<RespArray> for Command` 处的match
+    - 添加Command的variant
+    ```sh
+    hset t k v
+    OK
+    hset t a b
+    OK
+    hmget t
+    (Error) RespError: Invalid RESP frame length: 2
+    hmget t k a zack
+    1) "v"
+    2) "b"
+    3) (Null)
+    ```
+3. sadd/sismember
+
+    在实现时给RespFrame强行实现了Eq和hash, 感觉会有问题。
+    所以在之后往set中insert之前, 判断是否存在f64类型，如果存在不插入，返回Integer(0)
+
+    - backend添加一个`DashMap<String, DashSet<RespFrame>>`
+    - 添加SAdd 和 SisMember结构体
+    - 都实现实现CommandExecuter
+    - `TryFrom<RespArray>` for SAdd 和 SisMember`
+    - 添加`TryFrom<RespArray> for Command` 处的match
+    - 添加Command的variant
+
+
+    ```sh
+    (base) zackjchen@ZackJChens-Laptop macros % redis-cli
+    Redis [127.0.0.1]:6379 connected.
+    sadd myset "one" "two"
+    (Integer) 1
+    sismember myset "one"
+    (Integer) 1
+    sismember myset zack
+    (Integer) 0
+    sismember myset 1.23
+    (Integer) 0
+    ```
+
 
 ### 作业2
 这两个类似，写一个的修改过程

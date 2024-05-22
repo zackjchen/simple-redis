@@ -1,8 +1,11 @@
 use super::{parse_length, RespDecode, RespEncode, RespError, CRLF_LEN};
 use bytes::{Buf, BytesMut};
-use std::ops::Deref;
+use std::{
+    fmt::{self, Display, Formatter},
+    ops::Deref,
+};
 
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Eq)]
 pub struct BulkString(pub(crate) Option<Vec<u8>>);
 
 impl Deref for BulkString {
@@ -74,6 +77,21 @@ impl BulkString {
 impl<const N: usize> From<&[u8; N]> for BulkString {
     fn from(s: &[u8; N]) -> Self {
         BulkString(Some(s.to_vec()))
+    }
+}
+
+impl From<&str> for BulkString {
+    fn from(s: &str) -> Self {
+        BulkString(Some(s.as_bytes().to_vec()))
+    }
+}
+
+impl Display for BulkString {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.as_deref() {
+            Some(v) => write!(f, "{}", String::from_utf8_lossy(v)),
+            None => write!(f, "null"),
+        }
     }
 }
 

@@ -74,3 +74,40 @@ impl TryFrom<RespArray> for HmGet {
         Ok(HmGet { key, fields })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::{
+        backend,
+        cmd::{Command, CommandExecuter},
+        resp::{frame::RespFrame, BulkString, RespArray, RespDecode},
+    };
+    use anyhow::Result;
+    use bytes::BytesMut;
+    #[test]
+    fn test_hmget() -> Result<()> {
+        let backend = backend::Backend::new();
+        let hmget = "*4\r\n$5\r\nhmget\r\n$3\r\nkey\r\n$6\r\nfield1\r\n$5\r\nfield\r\n".as_bytes();
+        let hset1 = "*4\r\n$4\r\nhset\r\n$3\r\nkey\r\n$6\r\nfield1\r\n$6\r\nvalue1\r\n".as_bytes();
+        let hset2 = "*4\r\n$4\r\nhset\r\n$3\r\nkey\r\n$6\r\nfield2\r\n$6\r\nvalue2\r\n".as_bytes();
+        let frame1 = RespFrame::decode(&mut BytesMut::from(hset1))?;
+        let frame2 = RespFrame::decode(&mut BytesMut::from(hset2))?;
+        let frame = RespFrame::decode(&mut BytesMut::from(hmget))?;
+        let hset1 = Command::try_from(frame1)?;
+        let hset2 = Command::try_from(frame2)?;
+        let hmget = Command::try_from(frame)?;
+
+        hset1.execute(backend.clone());
+        hset2.execute(backend.clone());
+        let resp = hmget.execute(backend.clone());
+        assert_eq!(
+            resp,
+            RespFrame::Array(RespArray::new(vec![
+                RespFrame::BulkString(BulkString::new(b"value1")),
+                RespFrame::BulkString(BulkString::new_null_string()),
+            ]))
+        );
+
+        Ok(())
+    }
+}

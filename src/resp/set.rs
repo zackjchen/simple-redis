@@ -4,7 +4,7 @@ use bytes::{Buf, BytesMut};
 
 use super::{calc_total_length, parse_length, CRLF_LEN};
 use super::{RespDecode, RespEncode, RespError, RespFrame, BUF_CAPACITY};
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Eq)]
 pub struct RespSet(pub(crate) Vec<RespFrame>);
 
 impl RespEncode for RespSet {

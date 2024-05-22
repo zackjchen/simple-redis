@@ -10,7 +10,7 @@ use super::{
 };
 
 /// Now only support string key which encode to SimpleString
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Eq)]
 pub struct RespMap(pub(crate) BTreeMap<String, RespFrame>);
 
 impl RespEncode for RespMap {
